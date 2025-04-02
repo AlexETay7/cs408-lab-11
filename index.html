@@ -1,62 +1,88 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Test AWS Lambda</title>
-    <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
     <h1>Simple Demo for PUT, GET, and DELETE</h1>
-    <p id="lambda-info">
-        <!-- loaded with AJAX -->
-    </p>
+    
+    <h2>Add New Item</h2>
+    <form id="add-item-form">
+        <label for="item-id">ID:</label>
+        <input type="text" id="item-id" required>
+        <label for="item-name">Name:</label>
+        <input type="text" id="item-name" required>
+        <label for="item-price">Price:</label>
+        <input type="text" id="item-price" required>
+        <button type="submit">Add Item</button>
+    </form>
 
-    <hr>
-    <button id="send-data">Send Data</button>
-    <p>Sends an example JSON object to the server with id 11111</p>
+    <h2>Items List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="items-table">
+            <!-- Data will be loaded here -->
+        </tbody>
+    </table>
+
     <script>
-        document.getElementById("send-data").onclick = function () {
-            let xhr = new XMLHttpRequest();
-            xhr.open("PUT", "Your Lambda here");
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(JSON.stringify({
-                "id": "6666666",
-                "price": 19,
-                "name": "test put value"
-            }));
+        function loadItems() {
+            fetch("https://uz8kwvtdui.execute-api.us-west-2.amazonaws.com/items")
+                .then(response => response.json())
+                .then(data => {
+                    let table = document.getElementById("items-table");
+                    table.innerHTML = "";
+                    data.forEach(item => {
+                        let row = table.insertRow();
+                        row.innerHTML = `
+                            <td>${item.id}</td>
+                            <td>${item.name}</td>
+                            <td>${item.price}</td>
+                            <td><button onclick="deleteItem('${item.id}')">Delete</button></td>
+                        `;
+                    });
+                });
         }
-    </script>
 
-    <button id="load-data">Load Data</button>
-    <p>Loads data from the server</p>
-    <script>
-        document.getElementById("load-data").onclick = function () {
-            let lambda = document.getElementById("lambda-info");
-            let xhr = new XMLHttpRequest();
-            xhr.addEventListener("load", function () {
-                lambda.innerHTML = xhr.response;
+        function addItem(event) {
+            event.preventDefault();
+            let id = document.getElementById("item-id").value;
+            let name = document.getElementById("item-name").value;
+            let price = document.getElementById("item-price").value;
+            fetch("https://uz8kwvtdui.execute-api.us-west-2.amazonaws.com/items", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: id,
+                    name: name,
+                    price: price
+                })
+            }).then(() => {
+                loadItems();
+                document.getElementById("add-item-form").reset();
             });
-            xhr.open("GET", "Your Lambda here");
-            xhr.send();
         }
 
-    </script>
-
-    <hr>
-    <button id="delete-data">Delete Data</button>
-    <p>Deletes a JSON object from the server with 11111</p>
-    <script>
-        document.getElementById("delete-data").onclick = function () {
-            let xhr = new XMLHttpRequest();
-            xhr.open("DELETE", "Your Lambda here");
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send();
+        function deleteItem(id) {
+            fetch(`https://uz8kwvtdui.execute-api.us-west-2.amazonaws.com/items/${id}`, {
+                method: "DELETE"
+            }).then(() => loadItems());
         }
+
+        document.getElementById("add-item-form").addEventListener("submit", addItem);
+        window.onload = loadItems;
     </script>
 </body>
 
